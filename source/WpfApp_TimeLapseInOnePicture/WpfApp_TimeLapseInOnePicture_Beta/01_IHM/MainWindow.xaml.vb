@@ -157,4 +157,8 @@ Class MainWindow
         Next
         Set_StateButtonGo(True)
     End Sub
+
+    Private Sub Window_Closed(sender As Object, e As EventArgs)
+        m_Runtime.Clear_Temp()
+    End Sub
 End Class

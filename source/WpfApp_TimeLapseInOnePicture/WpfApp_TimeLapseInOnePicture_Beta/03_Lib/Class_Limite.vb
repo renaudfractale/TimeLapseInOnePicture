@@ -4,7 +4,7 @@
     Public Property Dif As Integer = 0
     Public Property H As Integer = 0
     Public Property PathFileTemp As String = ""
-    Public Sub New(index As Integer, Conf As Class_Enum, CountFiles As Integer, Width As Integer, Height As Integer)
+    Public Sub New(index As Integer, Conf As Class_Enum, CountFiles As Integer, Width As Integer, Height As Integer, PathTempCompute As String)
 
         Dim Pas = CDbl(Width) / CDbl(CountFiles)
         If Conf.Alignement = Alignement.V Then
@@ -36,7 +36,7 @@
         End If
 
 
-        PathFileTemp = System.IO.Path.GetTempPath() + "TimeLapseInOnePicture\Compute" + "\" + index.ToString + ".png"
+        PathFileTemp = PathTempCompute + "\" + index.ToString + ".png"
 
     End Sub
 End Class

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp_TimeLapseInOnePicture_Beta"
         mc:Ignorable="d"
-        Title="TimeLapseInOnePicture" Height="450" Width="800" Loaded="MainWindow_Loaded">
+        Title="TimeLapseInOnePicture" Height="450" Width="800" Loaded="MainWindow_Loaded" Closed="Window_Closed">
     
     <Grid>
         <Grid.RowDefinitions>

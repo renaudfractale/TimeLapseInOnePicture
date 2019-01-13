@@ -3,21 +3,24 @@ Imports System.Threading
 Imports System.Windows.Threading
 
 Class Class_Runtime
-    Private m_nbThread As Integer = 8
+    Private m_nbThread As Integer = 18
     Private m_MainWindow As MainWindow
     Private m_PathInput As String
-    Private m_Index_FilesInputes As Class_index_files
+    'Private m_Index_FilesInputes As Class_index_files
     Private m_Dico_ListFiles As Dictionary(Of String, Dictionary(Of String, List(Of String)))
-    Private PathTempRoot As String = "%temp%\TimeLapseInOnePicture"
-    Private PathTempCompute As String = "%temp%\TimeLapseInOnePicture\Compute"
+    Private PathTempRoot As String = ""
+    Private PathTempCompute As String = ""
     Public Sub New(MainWindow As MainWindow)
         m_MainWindow = MainWindow
         'WriteLog("Start -->  Del Path Temp")
-        Rmdir(PathTempRoot)
-        Mkdir(PathTempRoot)
-
+        Me.PathTempRoot = System.IO.Path.GetTempPath() + "TimeLapseInOnePicture_" + Now.ToString("YYYY-MM-dd_HH-mm-ss_fffff")
+        Me.PathTempCompute = PathTempRoot + "\Compute"
+        Rmdir(Me.PathTempRoot)
+        Mkdir(Me.PathTempRoot)
     End Sub
-
+    Public Sub Clear_Temp()
+        Rmdir(Me.PathTempRoot)
+    End Sub
     Private Sub Rmdir(PathDir As String)
         Dim myProcess1 As New Process()
         myProcess1.StartInfo.FileName = "cmd.exe"  'l'application
@@ -41,25 +44,31 @@ Class Class_Runtime
         Dim di As New IO.DirectoryInfo(PathInput)
         Dim ListOf_FilesInputes = di.GetFiles("*.*").ToList
 
-        m_Index_FilesInputes = New Class_index_files("")
+        Dim index_FilesInputes = New Class_index_files()
         'Création de l'indxe
         For i As Integer = 0 To ListOf_FilesInputes.Count - 1
-            m_Index_FilesInputes.Add(New Class_index_file(i, ListOf_FilesInputes.Item(i).FullName))
+            index_FilesInputes.Add(New Class_index_file(i, ListOf_FilesInputes.Item(i).FullName, "", New Class_Enum, ListOf_FilesInputes.Count))
         Next
 
         'Init dico
         m_Dico_ListFiles = New Dictionary(Of String, Dictionary(Of String, List(Of String)))
 
-        Dim listThread As New List(Of Thread)
-        For i As Integer = 1 To m_nbThread
-            listThread.Add(New Thread(AddressOf Analyse_Files))
-            listThread.Last.Start()
-        Next
+        Parallel.ForEach(index_FilesInputes,
+                     Sub(FilesInpute)
+                         Analyse_Files(FilesInpute)
+                     End Sub)
 
 
-        For i As Integer = 0 To m_nbThread - 1
-            listThread.Item(i).Join()
-        Next
+        'Dim listThread As New List(Of Thread)
+        'For i As Integer = 1 To m_nbThread
+        '    listThread.Add(New Thread(AddressOf Analyse_Files))
+        '    listThread.Last.Start()
+        'Next
+
+
+        'For i As Integer = 0 To m_nbThread - 1
+        '    listThread.Item(i).Join()
+        'Next
 
         Dim ListeBox As New List(Of String)
 
@@ -75,21 +84,11 @@ Class Class_Runtime
         Return ListeBox
     End Function
 
-    Private Sub Analyse_Files()
+    Private Sub Analyse_Files(FilesInpute As Class_index_file)
 
-        Dim ListeIndex As New List(Of Class_index_file)
-        Do
-            SyncLock m_Index_FilesInputes
-                ListeIndex = (From index_ In m_Index_FilesInputes
-                              Where index_.IsUsed = False).ToList
-                If ListeIndex.Count > 0 Then
-                    m_Index_FilesInputes(ListeIndex(0).Id).IsUsed = True
-                End If
 
-            End SyncLock
-            If ListeIndex.Count > 0 Then
-                Dim PathFile = ListeIndex(0).PathFile
-                Dim fi = New IO.FileInfo(PathFile)
+        Dim PathFile = FilesInpute.PathFile
+        Dim fi = New IO.FileInfo(PathFile)
                 Dim strFileSize = (Math.Round(fi.Length / 1024)).ToString()
                 Log_Apllication("************************")
                 Log_Apllication("File Name: " + fi.Name)
@@ -98,28 +97,23 @@ Class Class_Runtime
                 Log_Apllication("File Extension: " + fi.Extension)
                 Dim txt = IsValidImage(fi.FullName)
                 If txt <> "" Then
-                    SyncLock m_Dico_ListFiles
-
-
-                        'si extention inconue
-                        If Not m_Dico_ListFiles.ContainsKey(fi.Extension) Then
-                            m_Dico_ListFiles.Add(fi.Extension, New Dictionary(Of String, List(Of String)))
-                        End If
-
-                        'Si dimenstion picture inconnu
-                        If Not m_Dico_ListFiles.Item(fi.Extension).ContainsKey(txt) Then
-                            m_Dico_ListFiles.Item(fi.Extension).Add(txt, New List(Of String))
-                        End If
-
-                        'Ajout du fichier
-                        m_Dico_ListFiles.Item(fi.Extension).Item(txt).Add(fi.FullName)
-                    End SyncLock
+            SyncLock m_Dico_ListFiles
+                'si extention inconue
+                If Not m_Dico_ListFiles.ContainsKey(fi.Extension) Then
+                    m_Dico_ListFiles.Add(fi.Extension, New Dictionary(Of String, List(Of String)))
                 End If
 
+                'Si dimenstion picture inconnu
+                If Not m_Dico_ListFiles.Item(fi.Extension).ContainsKey(txt) Then
+                    m_Dico_ListFiles.Item(fi.Extension).Add(txt, New List(Of String))
+                End If
 
-            End If
+                'Ajout du fichier
+                m_Dico_ListFiles.Item(fi.Extension).Item(txt).Add(fi.FullName)
+            End SyncLock
+        End If
 
-        Loop While ListeIndex.Count > 0
+
 
     End Sub
     Private Function IsValidImage(filename As String) As String
@@ -205,10 +199,9 @@ Class Class_Runtime
 
 
         'Création de l'indxe de thread
-        m_Index_FilesInputes = New Class_index_files(PathOutpute)
-        m_Index_FilesInputes.Conf = InputeParameter
+        Dim Index_FilesInputes = New Class_index_files()
         For i As Integer = 0 To Liste_FilesSorted.Count - 1
-            m_Index_FilesInputes.Add(New Class_index_file(i, Liste_FilesSorted(i)))
+            Index_FilesInputes.Add(New Class_index_file(i, Liste_FilesSorted(i), PathOutpute, InputeParameter, Liste_FilesSorted.Count))
         Next
 
 
@@ -219,16 +212,22 @@ Class Class_Runtime
         Mkdir(PathTempCompute)
 
         '//////////////////////// Thread \\\\\\\\\\\\\\\\\\\\\\\\\\\\
-        Dim listThread As New List(Of Thread)
-        For i As Integer = 1 To m_nbThread
-            listThread.Add(New Thread(AddressOf Compute_Files))
-            listThread.Last.Start()
-        Next
+
+        Parallel.ForEach(Index_FilesInputes,
+                     Sub(FilesInpute)
+                         Compute_Files(FilesInpute)
+                     End Sub)
+
+        'Dim listThread As New List(Of Thread)
+        'For i As Integer = 1 To m_nbThread
+        '    listThread.Add(New Thread(AddressOf Compute_Files))
+        '    listThread.Last.Start()
+        'Next
 
 
-        For i As Integer = 0 To m_nbThread - 1
-            listThread.Item(i).Join()
-        Next
+        'For i As Integer = 0 To m_nbThread - 1
+        '    listThread.Item(i).Join()
+        'Next
 
         Log_Apllication("Start Asemblage de " + PathOutpute)
 
@@ -256,7 +255,7 @@ Class Class_Runtime
         Log_Apllication("End INIT de " + PathOutpute)
 
         For index As Integer = 0 To Liste_FilesSorted.Count - 1
-            Dim Limite As New Class_Limite(index, InputeParameter, Liste_FilesSorted.Count, Width, Height)
+            Dim Limite As New Class_Limite(index, InputeParameter, Liste_FilesSorted.Count, Width, Height, PathTempCompute)
             Dim myPNGTemp = New System.Drawing.Bitmap(Limite.PathFileTemp)
 
             For i As Integer = 0 To Limite.Dif - 1
@@ -309,111 +308,82 @@ Class Class_Runtime
 
 
 
-    Private Sub Compute_Files()
+    Private Sub Compute_Files(FilesInpute As Class_index_file)
 
-        Dim ListeIndex As New List(Of Class_index_file)
 
-        Dim Conf As Class_Enum
-        Dim PathMain As String = ""
-        Dim CountFiles As Integer = 0
-        SyncLock m_Index_FilesInputes
-            PathMain = m_Index_FilesInputes.PathMain
-            Conf = m_Index_FilesInputes.Conf
-            CountFiles = m_Index_FilesInputes.Count
-        End SyncLock
-        Do
-            SyncLock m_Index_FilesInputes
-                ListeIndex = (From index_ In m_Index_FilesInputes
-                              Where index_.IsUsed = False).ToList
-                If ListeIndex.Count > 0 Then
-                    m_Index_FilesInputes(ListeIndex(0).Id).IsUsed = True
+
+        Dim index = FilesInpute.Id
+        Dim PathFile = FilesInpute.PathFile
+        Log_Apllication("Start Compute de " + PathFile)
+        Dim myBitmap = New System.Drawing.Bitmap(PathFile)
+
+
+
+        Dim Width As Integer = myBitmap.Width
+        Dim Height As Integer = myBitmap.Height
+        Dim Limite As New Class_Limite(index, FilesInpute.Conf, FilesInpute.Count, Width, Height, Me.PathTempCompute)
+
+        'Vertion PNG
+        Dim FramePNG As New Bitmap(Limite.Dif + 1, Limite.H)
+
+
+        'Signal
+        Dim Signal_table As New List(Of Double)
+        For m As Integer = 0 To Limite.Dif
+            If FilesInpute.Conf.Signal = Signal.Cos Then
+                Signal_table.Add((1 - Math.Cos(m * (2 * Math.PI) / (Limite.Dif))) / 2.0)
+            ElseIf FilesInpute.Conf.Signal = Signal.Rect Then
+                If (Limite.Dif) / 2 < m Then
+                    Signal_table.Add(1)
+                Else
+                    Signal_table.Add(0)
                 End If
-            End SyncLock
-            If ListeIndex.Count > 0 Then
-                Dim index = ListeIndex(0).Id
-                Dim PathFile = ListeIndex(0).PathFile
-                Log_Apllication("Start Compute de " + PathFile)
-                Dim myBitmap = New System.Drawing.Bitmap(PathFile)
-
-
-
-                Dim Width As Integer = myBitmap.Width
-                Dim Height As Integer = myBitmap.Height
-                Dim Limite As New Class_Limite(index, Conf, CountFiles, Width, Height)
-
-
-                'Version tablea
-                'Dim data(L, H) As Class_RGB
-                'For i As Integer = 0 To L - 1
-                '    For j As Integer = 0 To H - 1
-                '        data(i, j) = New Class_RGB
-                '    Next
-                'Next
-
-                'Vertion PNG
-                Dim FramePNG As New Bitmap(Limite.Dif + 1, Limite.H)
-
-
-                'Signal
-                Dim Signal_table As New List(Of Double)
-                For m As Integer = 0 To Limite.Dif
-                    If Conf.Signal = Signal.Cos Then
-                        Signal_table.Add((1 - Math.Cos(m * (2 * Math.PI) / (Limite.Dif))) / 2.0)
-                    ElseIf Conf.Signal = Signal.Rect Then
-                        If (Limite.Dif) / 2 < m Then
-                            Signal_table.Add(1)
-                        Else
-                            Signal_table.Add(0)
-                        End If
-                    Else
-                        Dim PAs_Signal_Trig As Double = 2.0 / (CDbl(Limite.Dif))
-                        If Limite.Dif / 2 < m Then
-                            PAs_Signal_Trig = -PAs_Signal_Trig
-                        End If
-                        If m = 0 Then
-                            Signal_table.Add(0.0)
-                        Else
-                            Signal_table.Add(Math.Max(Signal_table.Last + PAs_Signal_Trig, 0.0))
-                        End If
-                    End If
-                Next
-
-
-                'Modulation du signale
-                If index = 0 Then
-                    For m As Integer = 0 To CInt(Limite.Dif / 2)
-                        Signal_table(m) = 1
-                    Next
-                ElseIf index = CountFiles - 1 Then
-                    For m As Integer = CInt(Limite.Dif / 2) To Limite.Dif
-                        Signal_table(m) = 1
-                    Next
+            Else
+                Dim PAs_Signal_Trig As Double = 2.0 / (CDbl(Limite.Dif))
+                If Limite.Dif / 2 < m Then
+                    PAs_Signal_Trig = -PAs_Signal_Trig
                 End If
-
-                For i As Integer = Limite.Start To Limite.Fin
-                    For k As Integer = 0 To Limite.H - 1
-                        Dim Pixel As New System.Drawing.Color
-                        If Conf.Alignement = Alignement.V Then
-                            Pixel = myBitmap.GetPixel(k, i)
-                        Else
-                            Pixel = myBitmap.GetPixel(i, k)
-                        End If
-                        FramePNG.SetPixel(i - Limite.Start, k, Color.FromArgb(CInt(Math.Min(Signal_table.Item(i - Limite.Start) * 127, 127)),
-                                                                       CInt(Math.Min(Pixel.R, 255)),
-                                                                       CInt(Math.Min(Pixel.G, 255)),
-                                                                       CInt(Math.Min(Pixel.B, 255))))
-
-                    Next
-                Next
-
-                FramePNG.Save(Limite.PathFileTemp)
-                FramePNG.Dispose()
-                myBitmap.Dispose()
-                Log_Apllication("End Compute de " + PathFile)
-                GC.Collect()
+                If m = 0 Then
+                    Signal_table.Add(0.0)
+                Else
+                    Signal_table.Add(Math.Max(Signal_table.Last + PAs_Signal_Trig, 0.0))
+                End If
             End If
+        Next
 
-        Loop While ListeIndex.Count > 0
+
+        'Modulation du signale
+        If index = 0 Then
+            For m As Integer = 0 To CInt(Limite.Dif / 2)
+                Signal_table(m) = 1
+            Next
+        ElseIf index = FilesInpute.Count - 1 Then
+            For m As Integer = CInt(Limite.Dif / 2) To Limite.Dif
+                Signal_table(m) = 1
+            Next
+        End If
+
+        For i As Integer = Limite.Start To Limite.Fin
+            For k As Integer = 0 To Limite.H - 1
+                Dim Pixel As New System.Drawing.Color
+                If FilesInpute.Conf.Alignement = Alignement.V Then
+                    Pixel = myBitmap.GetPixel(k, i)
+                Else
+                    Pixel = myBitmap.GetPixel(i, k)
+                End If
+                FramePNG.SetPixel(i - Limite.Start, k, Color.FromArgb(CInt(Math.Min(Signal_table.Item(i - Limite.Start) * 127, 127)),
+                                                               CInt(Math.Min(Pixel.R, 255)),
+                                                               CInt(Math.Min(Pixel.G, 255)),
+                                                               CInt(Math.Min(Pixel.B, 255))))
+
+            Next
+        Next
+
+        FramePNG.Save(Limite.PathFileTemp)
+        FramePNG.Dispose()
+        myBitmap.Dispose()
+        Log_Apllication("End Compute de " + PathFile)
+        GC.Collect()
 
     End Sub
 
