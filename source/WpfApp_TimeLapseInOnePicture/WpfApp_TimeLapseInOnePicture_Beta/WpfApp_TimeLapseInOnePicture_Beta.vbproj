@@ -12,20 +12,31 @@
     <MyType>Custom</MyType>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
-    <PublishUrl>D:\WebSite\</PublishUrl>
+    <IsWebBootstrapper>true</IsWebBootstrapper>
+    <HockeyAppResourceId>b4e028101ca748ef809e7ba8ae5f4ea7</HockeyAppResourceId>
+    <PublishUrl>ftp://ftp.cluster023.hosting.ovh.net/software/TimeLapseInOnePicture/</PublishUrl>
     <Install>true</Install>
-    <InstallFrom>Disk</InstallFrom>
-    <UpdateEnabled>false</UpdateEnabled>
+    <InstallFrom>Web</InstallFrom>
+    <UpdateEnabled>true</UpdateEnabled>
     <UpdateMode>Foreground</UpdateMode>
     <UpdateInterval>7</UpdateInterval>
     <UpdateIntervalUnits>Days</UpdateIntervalUnits>
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
+    <InstallUrl>http://www.timelapseinonepicture.renaud-henry.me/</InstallUrl>
+    <SupportUrl>http://www.timelapseinonepicture.renaud-henry.me/</SupportUrl>
+    <ErrorReportUrl>http://www.timelapseinonepicture.renaud-henry.me/</ErrorReportUrl>
+    <TargetCulture>fr</TargetCulture>
+    <ProductName>TimeLapseInOnePicture</ProductName>
+    <PublisherName>Les Clichés de renaud</PublisherName>
+    <SuiteName>TimeLapseInOnePicture</SuiteName>
+    <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
+    <WebPage>index.html</WebPage>
+    <ApplicationRevision>7</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
+    <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -91,6 +102,9 @@
   </PropertyGroup>
   <PropertyGroup>
     <TargetZone>Custom</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Resources\icone.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Core" />

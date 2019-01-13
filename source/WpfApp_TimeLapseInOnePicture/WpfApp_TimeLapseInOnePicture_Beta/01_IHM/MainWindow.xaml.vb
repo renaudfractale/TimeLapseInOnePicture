@@ -2,6 +2,11 @@
 
 Class MainWindow
     Private m_Runtime As Class_Runtime
+
+    Private Sub Set_StateButtonGo(State As Boolean)
+        Button_Go.IsEnabled = State
+        Button_Go_All.IsEnabled = State
+    End Sub
     Private Sub Button_GetPath_Click(sender As Object, e As RoutedEventArgs) Handles Button_GetPath.Click
         Dim dialog = New FolderBrowserDialog()
         If dialog.ShowDialog() = Forms.DialogResult.OK Then
@@ -47,7 +52,8 @@ Class MainWindow
         RadioButton_Signal_Rect.IsEnabled = False
         RadioButton_Signal_Trig.IsEnabled = False
 
-        Button_Go.IsEnabled = False
+        Set_StateButtonGo(False)
+
 
         TextBox_PathInput.IsReadOnly = True
 
@@ -60,16 +66,14 @@ Class MainWindow
 
     Private Sub ListBox_Choose_Ext_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles ListBox_Choose_Ext.SelectionChanged
         If ListBox_Choose_Ext.SelectedItem IsNot Nothing Then
-            Button_Go.IsEnabled = True
-            Button_Go_All.IsEnabled = True
+            Set_StateButtonGo(True)
         Else
-            Button_Go.IsEnabled = False
-            Button_Go_All.IsEnabled = False
+            Set_StateButtonGo(False)
         End If
     End Sub
 
     Private Sub Button_Go_Click(sender As Object, e As RoutedEventArgs) Handles Button_Go.Click
-        Button_Go.IsEnabled = False
+        Set_StateButtonGo(False)
         Dim random As New Random()
 
         Dim Enum_Radio As New Class_Enum
@@ -114,11 +118,11 @@ Class MainWindow
         Dim startInfo = New ProcessStartInfo(PathPicture)
         Process.Start(startInfo)
 
-        Button_Go.IsEnabled = True
+        Set_StateButtonGo(True)
     End Sub
 
     Private Sub Button_Go_All_Click(sender As Object, e As RoutedEventArgs) Handles Button_Go_All.Click
-        Button_Go.IsEnabled = False
+        Set_StateButtonGo(False)
 
         Dim Enum_Radio As New Class_Enum
         Enum_Radio.TextSelected = CType(ListBox_Choose_Ext.SelectedItem, String)
@@ -151,6 +155,6 @@ Class MainWindow
                 Next
             Next
         Next
-        Button_Go.IsEnabled = True
+        Set_StateButtonGo(True)
     End Sub
 End Class
